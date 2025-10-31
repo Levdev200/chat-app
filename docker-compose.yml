@@ -1,0 +1,28 @@
+services:
+  chat_server:
+    build: .
+    ports:
+      - "80:80"
+      - "8000:8000"
+    environment:
+      - DB_HOST=chat_db
+      - DB_NAME=chat_dev
+      - DB_USER=chatuser
+      - DB_PASSWORD=supersecretpassword
+    depends_on:
+      - chat_db
+
+  chat_db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: chat_dev
+      POSTGRES_USER: chatuser
+      POSTGRES_PASSWORD: supersecretpassword
+    volumes:
+      - chat_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  chat_data:

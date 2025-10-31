@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💬 Chat en Tiempo Real</title>
+  <style>
+    body {
+      background-color: #0d1117;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      margin: 20px 0;
+      font-size: 1.8rem;
+    }
+    #chat {
+      width: 90%;
+      max-width: 600px;
+      background: #161b22;
+      border-radius: 12px;
+      padding: 15px;
+      overflow-y: auto;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .message {
+      background: #30363d;
+      padding: 10px 14px;
+      border-radius: 10px;
+      max-width: 80%;
+      word-wrap: break-word;
+      line-height: 1.3;
+      font-size: 0.95rem;
+    }
+    .mine {
+      background: #238636;
+      align-self: flex-end;
+    }
+    #inputs {
+      width: 90%;
+      max-width: 600px;
+      display: flex;
+      gap: 5px;
+      margin: 15px 0;
+    }
+    input, button {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+    }
+    input {
+      flex: 1;
+      background: #21262d;
+      color: white;
+    }
+    button {
+      background: #2f81f7;
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #1f6feb;
+    }
+  </style>
+</head>
+<body>
+  <h1>💬 Chat en Tiempo Real</h1>
+  <div id="chat"></div>
+  <div id="inputs">
+    <input type="text" id="username" placeholder="Tu nombre...">
+    <input type="text" id="message" placeholder="Escribe un mensaje...">
+    <button id="send">Enviar</button>
+  </div>
+
+  <script>
+    const usernameInput = document.getElementById('username');
+    const messageInput = document.getElementById('message');
+    const chatDiv = document.getElementById('chat');
+    const sendBtn = document.getElementById('send');
+
+    const ws = new WebSocket(`ws://${window.location.host}/ws`);
+
+    // 🔄 Reconecta automáticamente si el servidor se reinicia o recargas
+    ws.onclose = () => {
+    console.warn("❌ Conexión perdida con el servidor WebSocket");
+    // Solo recarga si realmente se había conectado antes
+    if (ws.readyState === WebSocket.OPEN) {
+        setTimeout(() => location.reload(), 1500);
+    }
+    };
+
+    ws.onmessage = (event) => {
+      const msg = event.data;
+      const user = usernameInput.value.trim();
+
+      // Evita duplicar si el mensaje es tuyo
+      if (msg.startsWith("[" + user + "]")) return;
+
+      appendMessage(msg, false);
+    };
+
+    sendBtn.onclick = sendMessage;
+    messageInput.addEventListener("keypress", e => {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    function sendMessage() {
+      const user = usernameInput.value.trim();
+      const text = messageInput.value.trim();
+      if (!user || !text) return;
+
+      const formatted = `[${user}]: ${text}`;
+      appendMessage(formatted, true);
+      ws.send(JSON.stringify({ user, text }));
+      messageInput.value = "";
+    }
+
+    function appendMessage(text, mine = false) {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message");
+      if (mine) msgDiv.classList.add("mine");
+      msgDiv.textContent = text;
+      chatDiv.appendChild(msgDiv);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+  </script>
+</body>
+</html>
